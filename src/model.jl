@@ -40,7 +40,7 @@ function TbgToy(L::T1, ϵ::T2, g::Vector{Gaussian}) where {T1<:Real, T2<:Real}
 	Lz = 0.
     latR = 2pi/L
 
-    F(σ,q) = exp(-q^2/(2σ^2))
+    F(σ, q) = exp(-(q * σ)^2 / 2)
     v1(q) = -(g[1].A / L) * F(g[1].σ, q[1])
     v2(q) = -(g[2].A / L) * F(g[2].σ, q[1]/(1+ϵ))
 

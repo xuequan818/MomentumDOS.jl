@@ -26,12 +26,12 @@ model = TbgToy(L, ϵ, gauss)
 
 Ecut = 500
 basis = Basis(Ecut, model);
-@time H = ham_Kinetic(basis);
+@time H = map(k->ham_Kinetic(basis,basis.kpts[k]),1:basis.nk);
 @time Htest = ham_kinetic_test(basis);
 
 nk = basis.nk
 npw = basis.npw
 for k = 1:nk
-	e = norm(Array(H[npw*(k-1)+1:npw*k,npw*(k-1)+1:npw*k])-Htest[k,:,:])
+	e = norm(Array(H[k])-Htest[k,:,:])
 	@test e < 1e-8
 end

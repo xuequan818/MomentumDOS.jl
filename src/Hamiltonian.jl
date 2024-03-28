@@ -1,23 +1,15 @@
-export  ham_Kinetic, ham_Potential, hamiltonian
+export  ham_Kinetic, ham_Potential, hamK, hamFull
 
-function ham_Kinetic(basis::Basis)
-    nk = basis.nk
-    kpts = basis.kpts
+function ham_Kinetic(basis::Basis, kgrid)
+
     Gmn = basis.Gmn
     npw = basis.npw
+    vals = 0.5 .* norm.(kgrid.+Gmn).^2
 
-    vals = Float64[]
-    Gmnk = similar(Gmn)
-    valk = zeros(npw)
-    for k = 1:nk #loop for the k points
-        @. Gmnk = kpts[k] + Gmn
-        @. valk = 0.5 * norm(Gmnk)^2
-
-        append!(vals, valk)
-    end
-
-    sparse(1:nk*npw, 1:nk*npw, vals)
+    sparse(1:npw, 1:npw, vals)
 end
+
+ham_Kinetic(basis::Basis) = ham_Kinetic(basis, zero(basis.kpts[1]))
 
 function genV(Gmap::SparseMatrixCSC{Int64,Int64}, G, v::Function, indi, indj, vals)
     
@@ -55,7 +47,6 @@ function ham_Potential(basis::Basis)
     Gmap12 = basis.Gmap12
     Gmap21 = basis.Gmap21
     npw = basis.npw
-    nk = basis.nk
 
     indi = Int[]
     indj = Int[]
@@ -64,14 +55,9 @@ function ham_Potential(basis::Basis)
     genV(Gmap12, G1, v1, indi, indj, vals) # generate V1_{G1-G1'}δ(G2,G2')
     genV(Gmap21, G2, v2, indi, indj, vals) # generate V2_{G2-G2'}δ(G1,G1')
 
-    indifull = []
-    indjfull = []
-    for k = 1:nk
-        append!(indifull, indi .+ (k - 1) * npw)
-        append!(indjfull, indj .+ (k - 1) * npw)
-    end 
-
-    sparse(indifull, indjfull, repeat(vals, nk), nk * npw, nk * npw)
+    sparse(indi, indj, vals, npw, npw)
 end
 
-hamiltonian(basis::Basis) = ham_Kinetic(basis) + ham_Potential(basis)
+hamK(basis::Basis, k::Int64) = ham_Kinetic(basis, basis.kpts[k]) + ham_Potential(basis)
+
+hamFull(basis::Basis) = map(k->hamK(basis,k), 1:basis.nk)

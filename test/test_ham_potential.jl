@@ -27,7 +27,7 @@ function ham_potential_test(basis::Basis)
     return H
 end
 
-gauss = [Gaussian(1.0, 0.5), Gaussian(1.1, 0.5)]
+gauss = [Gaussian(7, 0.05), Gaussian(5, 0.05)]
 L = 5
 ϵ = 0.1
 model = TbgToy(L, ϵ, gauss)
@@ -40,6 +40,6 @@ basis = Basis(Ecut, model);
 nk = basis.nk
 npw = basis.npw
 for k = 1:nk
-    e = norm(Array(H[npw*(k-1)+1:npw*k, npw*(k-1)+1:npw*k]) - Htest[k, :, :])
+    e = norm(Array(H) - Htest[k, :, :])
     @test e < 1e-8
 end
