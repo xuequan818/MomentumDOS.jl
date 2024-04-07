@@ -38,7 +38,6 @@ end
 function TbgToy(L::T1, ϵ::T2, g::Vector{Gaussian}) where {T1<:Real, T2<:Real} 
 	lat = [L, L/(1+ϵ)]
 	Lz = 0.
-    latR = 2pi/L
 
     F(σ, q) = exp(-(q * σ)^2 / 2)
     v1(q) = -(g[1].A / L) * F(g[1].σ, q[1])

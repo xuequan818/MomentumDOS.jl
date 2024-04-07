@@ -147,7 +147,6 @@ function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW, M::Int64; Npt
 
     HV = ham_Potential(basis)
     vmin, umin = eigsolve(HV, 1, :SR)
-    Elb = vmin[1]
 
     npw = basis.npw
     nk = basis.nk
@@ -156,8 +155,8 @@ function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW, M::Int64; Npt
 
     pt = cos.(range(0, 2pi - pi / Npt, length=2Npt))
     # Elb = λmin(HV),  Eup = 2 * W^2
-    E1 = (2 * basis.EcutW^2 + Elb) / 2
-    E2 = (2 * basis.EcutW^2 - Elb) / 2
+    E1 = basis.EcutW^2 + 0.5 * vmin[1]
+    E2 = basis.EcutW^2 - 0.5 * vmin[1]
     coef = genKPM(M, smearf.σ, pt, ϵ, E1, E2)
     ck = zeros(size(ldos,1))
     for k = 1:nk
@@ -181,7 +180,6 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
 
     HV = ham_Potential(basis)
     vmin, umin = eigsolve(HV, 1, :SR)
-    Elb = vmin[1]
 
     npw = basis.npw
     G0ind = basis.Gmap12[basis.G1max+1, basis.G2max+1]
@@ -189,8 +187,8 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
 
     pt = cos.(range(0, 2pi - pi / Npt, length=2Npt))
     # Elb = λmin(HV),  Eup = 2 * W^2
-    E1 = (2 * basis.EcutW^2 + Elb) / 2
-    E2 = (2 * basis.EcutW^2 - Elb) / 2
+    E1 = basis.EcutW^2 + 0.5 * vmin[1]
+    E2 = basis.EcutW^2 - 0.5 * vmin[1]
     coef = genKPM(M, smearf.σ, pt, ϵ, E1, E2)
     ck = zero(ldos)
     for k = 1:basis.nk
