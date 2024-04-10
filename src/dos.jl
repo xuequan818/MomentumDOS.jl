@@ -97,12 +97,18 @@ function genKPM(M::Int64, σ::T, pt, Ept, E1::Float64, E2::Float64) where {T<:Re
     g(x, E) = exp(-(x - E)^2 / (2σ^2)) / (sqrt(2pi) * σ)
     Es = (Ept .- E1) ./ E2
     coef = zeros(length(Ept), M+1)
+    cM = (M+1) * ones(Int, length(Ept))
     for (i, Esi) in enumerate(Es)
-        coef[i,:] = real.(fft(g.(pt,Esi))[1:M+1])
+        coef[i,:] = real.(fft(g.(pt,Esi))[1:M+1]) .* 2 ./ length(pt)
         coef[i,1] /= 2
+        ciM = findlast(x->abs(x)>1e-11,coef[i,:])
+        if ciM != nothing
+            cM[i] = ciM
+        end
     end
+    Mmax = maximum(cM)
 
-   coef .* 2 ./ length(pt)
+   return Mmax-1, coef[:,1:Mmax]
 end
 
 function genKPM_Jackson(M::Int64, f::Function, pt)
@@ -143,7 +149,7 @@ function compute_TH0(M::Int64, H::SparseMatrixCSC, ind0::Int64)
 	TH0
 end
 
-function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW, M::Int64; Npt=Int(round(1.1M)))
+function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW; M=Int(6e4), Npt=Int(round(1.1M)))
 
     HV = ham_Potential(basis)
     vmin, umin = eigsolve(HV, 1, :SR)
@@ -157,9 +163,12 @@ function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW, M::Int64; Npt
     # Elb = λmin(HV),  Eup = 2 * W^2
     E1 = basis.EcutW^2 + 0.5 * vmin[1]
     E2 = basis.EcutW^2 - 0.5 * vmin[1]
-    coef = genKPM(M, smearf.σ, pt, ϵ, E1, E2)
-    ck = zeros(size(ldos,1))
+    M, coef = genKPM(M, smearf.σ, pt, ϵ, E1, E2)
+    @show M
+    ck = zeros(size(ldos, 1))
     for k = 1:nk
+        (k % 50 == 0 || k == nk) && println(" $(k) / $(nk) ")
+
         Hk = hamK(basis, k, HV)
         Hks = (Hk - E1 * I) / E2
         THk0 = compute_TH0(M, Hks, G0ind)
@@ -172,7 +181,7 @@ function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW, M::Int64; Npt
 end
 
 
-function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, EcutW::T, K::Int64, M::Int64; Npt = Int(round(1.1M))) where {T<:Real}
+function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, EcutW::T, K::Int64; M=Int(6e4), Npt = Int(round(1.1M))) where {T<:Real}
 
     h = EcutW / K
     xx = collect(range(-EcutW, EcutW, length=2K))
@@ -182,6 +191,7 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
     vmin, umin = eigsolve(HV, 1, :SR)
 
     npw = basis.npw
+    nk = basis.nk
     G0ind = basis.Gmap12[basis.G1max+1, basis.G2max+1]
     ldos = zeros(length(ϵ))
 
@@ -189,9 +199,12 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
     # Elb = λmin(HV),  Eup = 2 * W^2
     E1 = basis.EcutW^2 + 0.5 * vmin[1]
     E2 = basis.EcutW^2 - 0.5 * vmin[1]
-    coef = genKPM(M, smearf.σ, pt, ϵ, E1, E2)
+    M, coef = genKPM(M, smearf.σ, pt, ϵ, E1, E2)
+    @show M 
     ck = zero(ldos)
-    for k = 1:basis.nk
+    for k = 1#:nk
+        (k % 50 == 0 || k == nk) && println(" $(k) / $(nk) ")
+
         Hk = hamK(basis, k, HV)
         Hks = (Hk - E1 * I) / E2
 		THk0 = compute_TH0(M,Hks,G0ind)
@@ -204,4 +217,4 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
     ldos .* h ./ E2
 end
 
-compute_dos_shift_kpm(ϵ, smearf::DosFunction, basis::BasisLW, K::Int64, M::Int64; Npt = Int(round(1.1M))) = compute_dos_shift_kpm(ϵ, smearf, basis.model, basis.EcutL, basis.EcutW, K, M; Npt = Npt)
+compute_dos_shift_kpm(ϵ, smearf::DosFunction, basis::BasisLW, K::Int64; M=Int(6e4), Npt=Int(round(1.1M))) = compute_dos_shift_kpm(ϵ, smearf, basis.model, basis.EcutL, basis.EcutW, K; M=M, Npt=Npt)
