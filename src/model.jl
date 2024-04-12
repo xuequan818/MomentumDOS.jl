@@ -1,7 +1,7 @@
 # incommensurate structures: 
 # incommStruc for toy model
 
-export Gaussian, TBG1D, TbgToy
+export Gaussian, TbgToy
 """TBG1D
 lat : lattice vectors for periodic cells 
 latR : lattice vectors for reciprocal lattices

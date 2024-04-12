@@ -6,7 +6,7 @@ using StaticArrays, SparseArrays
 using SpecialFunctions, FFTW
 using JLD2
 
-include("Model.jl")
+include("model.jl")
 include("basis.jl")
 include("Hamiltonian.jl")
 include("dos.jl")
