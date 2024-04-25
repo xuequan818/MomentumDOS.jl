@@ -33,7 +33,7 @@ L = 5
 model = TbgToy(L, ϵ, gauss)
 
 Ecut = 500
-basis = Basis(Ecut, model);
+basis = Basis(Ecut, model; kpts=collect(-1:0.2:1));
 @time H = ham_Potential(basis);
 @time Htest = ham_potential_test(basis);
 

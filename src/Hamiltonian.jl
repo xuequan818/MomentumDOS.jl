@@ -26,7 +26,7 @@ function genV(Gmap::SparseMatrixCSC{Int64,Int64}, G, v::Function, indi, indj, va
             @views Gi2 = G[i2, :]
             @. dG = Gi1 - Gi2
             vdG = v(dG)
-            if norm(vdG,Inf) > 1e-12
+            if norm(vdG,Inf) > 1e-11
                 push!(vals, vdG)
                 push!(indi, Gmap[i1, j])
                 push!(indj, Gmap[i2, j])
