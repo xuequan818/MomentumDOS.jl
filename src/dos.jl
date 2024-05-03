@@ -55,7 +55,7 @@ end
 function compute_dos_shift(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, EcutW::T, n_eigs::Int64, K::Int64; ERange=0.0) where {T<:Real}
 
     h = EcutW / K
-    xx = collect(range(-EcutW, EcutW, length=2K))
+    xx = collect(-K:1:K-1) .* h
     basis = basisGen(EcutL, EcutW, model, xx)
     HV = ham_Potential(basis)
 
@@ -225,15 +225,13 @@ function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW; M=Int(1e5), N
     ldos ./ 2pi
 end
 
-
 function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, EcutW::T, h::Float64; M=Int(1e5), Npt=Int(round(1.1M)), tol=1e-6, Ktrunc=EcutW, kwidth=5.0, method=KPM()) where {T<:Real}
 
     # Note that the LDoS of this toy model has symmetry about 0
     # we just compute ξ ∈ [0,Ktrunc]
-    # the final DoS will be normalized by 2
     
     hgrid = Int(round(kwidth / h))
-    xx = collect(0:h:Ktrunc)[2:end]
+    xx = collect(0:h:Ktrunc)
     basis = basisGen(EcutL, EcutW, model, xx)
 
     HV = ham_Potential(basis)
@@ -244,6 +242,8 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
     nk = basis.nk
     G0ind = basis.Gmap12[basis.G1max+1, basis.G2max+1]
     ldos = zeros(length(ϵ))
+    ldos0 = copy(ldos)
+    ldosK = copy(ldos)
 
     pt = cos.(range(0, 2pi - pi / Npt, length=2Npt))
     ck = zero(ldos)
@@ -269,8 +269,16 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
         # g(H^{W,L}(q))_{0,0} = \sum_m cm*Tm(H(q))_{0,0}
         mul!(ck, coef, THk0)
         ldos += ck ./ E2
-    end
 
-    2.0 * ldos .* h ./ 2pi
+        if k == 1
+            copy!(ldos0, ck ./ E2)
+        end
+
+        if k == length(basis.kpts)
+            copy!(ldosK, ck ./ E2)
+        end
+    end
+    
+    (2 .* ldos - ldos0 - ldosK) .* h ./ 2pi
 end
 compute_dos_shift_kpm(ϵ, smearf::DosFunction, basis::BasisLW, h::Float64; kwargs...) = compute_dos_shift_kpm(ϵ, smearf, basis.model, basis.EcutL, basis.EcutW, h; kwargs...)
