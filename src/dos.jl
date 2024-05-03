@@ -242,8 +242,6 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
     nk = basis.nk
     G0ind = basis.Gmap12[basis.G1max+1, basis.G2max+1]
     ldos = zeros(length(ϵ))
-    ldos0 = copy(ldos)
-    ldosK = copy(ldos)
 
     pt = cos.(range(0, 2pi - pi / Npt, length=2Npt))
     ck = zero(ldos)
@@ -268,17 +266,9 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
 
         # g(H^{W,L}(q))_{0,0} = \sum_m cm*Tm(H(q))_{0,0}
         mul!(ck, coef, THk0)
-        ldos += ck ./ E2
-
-        if k == 1
-            copy!(ldos0, ck ./ E2)
-        end
-
-        if k == length(basis.kpts)
-            copy!(ldosK, ck ./ E2)
-        end
+        ldos += (1 < k < length(basis.kpts) ? 2 .* ck ./ E2 : ck ./ E2)
     end
     
-    (2 .* ldos - ldos0 - ldosK) .* h ./ 2pi
+    ldos .* h ./ 2pi
 end
 compute_dos_shift_kpm(ϵ, smearf::DosFunction, basis::BasisLW, h::Float64; kwargs...) = compute_dos_shift_kpm(ϵ, smearf, basis.model, basis.EcutL, basis.EcutW, h; kwargs...)
