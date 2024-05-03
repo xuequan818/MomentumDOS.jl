@@ -187,6 +187,7 @@ end
 
 function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW; M=Int(1e5), Npt=Int(round(1.1M)), tol=1e-6, method=KPM())
 
+    kwidth = 5.0
     HV = ham_Potential(basis)
     vmin = eigsolve(HV, 1, :SR)[1][1]
     vmax = eigsolve(HV, 1, :LR)[1][1]
@@ -205,10 +206,10 @@ function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW; M=Int(1e5), N
     for (k, kpt) in enumerate(basis.kpts)
         (k % 50 == 0 || k == nk) && println(" $(k) / $(nk) ")
 
-        if (kpt - basis.kpts[1]) % 5.0 == 0.0
+        if (kpt - basis.kpts[1]) % kwidth == 0.0
             # Elb = λmin(HV),  Eup = 0.5 * (|k| + W)^2 + λmax(HV)
-            E1 = (0.5 * (abs(kpt) + basis.EcutW)^2 + vmax + vmin) / 2
-            E2 = (0.5 * (abs(kpt) + basis.EcutW)^2 + vmax - vmin) / 2
+            E1 = (0.5 * (abs(kpt) + kwidth + basis.EcutW)^2 + vmax + vmin) / 2
+            E2 = (0.5 * (abs(kpt) + kwidth + basis.EcutW)^2 + vmax - vmin) / 2
             Mk, coef = genCheb(M, smearf.σ, pt, ϵ, E1, E2, method; tol=tol)
             @show Mk
         end
@@ -227,7 +228,8 @@ end
 
 function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, EcutW::T, h::Float64; M=Int(1e5), Npt=Int(round(1.1M)), tol=1e-6, method=KPM(), Ktrunc=EcutW) where {T<:Real}
 
-    hgrid = Int(round(5 / h))
+    kwidth = 5.0
+    hgrid = Int(round(kwidth / h))
     xx = collect(0:h:Ktrunc)[2:end]
     basis = basisGen(EcutL, EcutW, model, xx)
 
@@ -251,8 +253,8 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, 
 
         if k % hgrid == 1
             # Elb = λmin(HV),  Eup = 0.5 * (|k| + W)^2 + λmax(HV)
-            E1 = (0.5 * (abs(kpt) + basis.EcutW)^2 + vmax + vmin) / 2
-            E2 = (0.5 * (abs(kpt) + basis.EcutW)^2 + vmax - vmin) / 2
+            E1 = (0.5 * (abs(kpt) + kwidth + basis.EcutW)^2 + vmax + vmin) / 2
+            E2 = (0.5 * (abs(kpt) + kwidth + basis.EcutW)^2 + vmax - vmin) / 2
             Mk, coef = genCheb(M, smearf.σ, pt, ϵ, E1, E2, method; tol=tol)
             @show Mk
         end
