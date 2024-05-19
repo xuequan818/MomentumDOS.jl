@@ -7,8 +7,8 @@ L = 1
 ϵ = 0
 model = TbgToy(L, ϵ, gauss)
 
-EcL = 60
-EcW = 30
+EcL = 80
+EcW = 50
 basis = Basis(EcL, EcW, model);
 
 σ = 0.4
@@ -17,3 +17,4 @@ h = 0.1
 @time dos = compute_dos_shift_kpm(xs, Gauss(σ), basis, h; Ktrunc = 30);
 
 P = plot(title="ϵ = $ϵ", xs, dos)
+plot!(xs,dos2)

@@ -10,16 +10,16 @@ vft : fourier transform of external potentials
 lat_unit_vol : unit cell volume for lattice
 latR_unit_vol : unit cell volume for reciprocal lattice
 """
-struct TBG1D{T <: Real}
-    lat::Vector{T}
-    latR::Vector{T}
-    Lz::T
+struct TBG1D{T1,T2} <: Real
+    lat::Vector{T1}
+    latR::Vector{T1}
+    Lz::T1
     vft::Vector{Function}
-    lat_unit_vol::Vector{Float64}
-    latR_unit_vol::Vector{Float64}
+    lat_unit_vol::Vector{T2}
+    latR_unit_vol::Vector{T2}
 end
 
-function TBG1DGen(lat::Vector{T}, Lz::T, vft::Vector) where {T <: Real}
+function TBG1DGen(lat::Vector{T}, Lz::T, vft::Vector) where {T}
     @assert length(lat) == 2
     lat_unit_vol = [det(latj) for latj in lat]
     latR = [2π / latj for latj in lat]
@@ -30,12 +30,12 @@ function TBG1DGen(lat::Vector{T}, Lz::T, vft::Vector) where {T <: Real}
 end
 
 # g(x) = Ae^{-x^2/2σ^2} / σ√2π 
-struct Gaussian
-    A::T where {T<:Real}
-    σ::T where {T<:Real}
+struct Gaussian{T1,T2} <: Real
+    A::T1
+    σ::T2
 end 
 
-function TbgToy(L::T1, ϵ::T2, g::Vector{Gaussian}) where {T1<:Real, T2<:Real} 
+function TbgToy(L::T1, ϵ::T2, g::Vector{Gaussian{T3,T4}}) where {T1, T2, T3, T4} 
 	lat = [L, L/(1+ϵ)]
 	Lz = 0.
 

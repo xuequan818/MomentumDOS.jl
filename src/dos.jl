@@ -55,7 +55,7 @@ end
 function compute_dos_shift(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, EcutW::T, n_eigs::Int64, K::Int64; ERange=0.0) where {T<:Real}
 
     h = EcutW / K
-    xx = collect(-K:1:K-1) .* h
+    xx = collect(-K:K-1) .* h
     basis = basisGen(EcutL, EcutW, model, xx)
     HV = ham_Potential(basis)
 

@@ -15,24 +15,24 @@ nk : number of k-points
 kpts : k-points
 model : TBG1D
 """
-struct BasisST{T1<:Real,T2<:Real} <: Basis
+struct BasisST{T1,T2,T3} <: Basis
     Ecut::T1
-    npw::Int64
-    G1max::Int64
-    G2max::Int64
+    npw::T3
+    G1max::T3
+    G2max::T3
     G1::Vector{T2}
     G2::Vector{T2}
-    G::Matrix{Int64}
+    G::Matrix{T3}
     Gmn::Vector{T2}
-    Gmap12::SparseMatrixCSC{Int64,Int64}
-    Gmap21::SparseMatrixCSC{Int64,Int64}
-    nk::Int64
-    kpts::Vector{Float64}
+    Gmap12::SparseMatrixCSC{T3,T3}
+    Gmap21::SparseMatrixCSC{T3,T3}
+    nk::T3
+    kpts::Vector{T2}
     model::TBG1D
 end
 
-function basisGen(Ecut::T, model::TBG1D,            
-                kpts::Vector{Float64}) where {T<:Real}
+function basisGen(Ecut::T1, model::TBG1D,            
+                kpts::Vector{T2}) where {T1, T2}
 
     latR = model.latR
 
@@ -68,7 +68,7 @@ function basisGen(Ecut::T, model::TBG1D,
     BasisST(Ecut, count, G1max, G2max, G1, G2, G, Gmn, Gmap12, Gmap21, nk, kpts, model)
 end
 
-Basis(Ecut::T, model::TBG1D; kpts = zeros(1)) where {T<:Real} = basisGen(Ecut, model, kpts)
+Basis(Ecut::T, model::TBG1D; kpts = zeros(1)) where {T} = basisGen(Ecut, model, kpts)
 
 """
 Modified planewave cutoff
@@ -85,26 +85,26 @@ kpts : k-points
 SdL : the volume of a d-simensional ball with diameter L
 model : TBG1D
 """
-struct BasisLW{T1<:Real,T2<:Real} <:Basis
+struct BasisLW{T1,T2,T3} <:Basis
     EcutL::T1
     EcutW::T1
-    npw::Int64
-    G1max::Int64
-    G2max::Int64
+    npw::T3
+    G1max::T3
+    G2max::T3
     G1::Vector{T2}
     G2::Vector{T2}
-    G::Matrix{Int64}
+    G::Matrix{T3}
     Gmn::Vector{T2}
-    Gmap12::SparseMatrixCSC{Int64,Int64}
-    Gmap21::SparseMatrixCSC{Int64,Int64}
-    nk::Int64
-    kpts::Vector{Float64}
-    SdL::Float64
+    Gmap12::SparseMatrixCSC{T3,T3}
+    Gmap21::SparseMatrixCSC{T3,T3}
+    nk::T3
+    kpts::Vector{T2}
+    SdL::T2
     model::TBG1D
 end
 
-function basisGen(EcutL::T, EcutW::T, model::TBG1D, 
-                kpts::Vector{Float64}) where {T<:Real}
+function basisGen(EcutL::T1, EcutW::T1, model::TBG1D, 
+                kpts::Vector{T2}) where {T1,T2}
 
     latR = model.latR
     dim = size(latR[1],1)
@@ -142,4 +142,4 @@ function basisGen(EcutL::T, EcutW::T, model::TBG1D,
     BasisLW(EcutL, EcutW, count, G1max, G2max, G1, G2, G, Gmn, Gmap12, Gmap21, nk, kpts, SdL, model)
 end
 
-Basis(EcutL::T, EcutW::T, model::TBG1D; nk=1, kpts=zeros(1)) where {T<:Real} = basisGen(EcutL, EcutW, model, kpts)
+Basis(EcutL::T, EcutW::T, model::TBG1D; nk=1, kpts=zeros(1)) where {T} = basisGen(EcutL, EcutW, model, kpts)
