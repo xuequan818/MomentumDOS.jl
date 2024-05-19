@@ -17,4 +17,3 @@ h = 0.1
 @time dos = compute_dos_shift_kpm(xs, Gauss(σ), basis, h; Ktrunc = 30);
 
 P = plot(title="ϵ = $ϵ", xs, dos)
-plot!(xs,dos2)
