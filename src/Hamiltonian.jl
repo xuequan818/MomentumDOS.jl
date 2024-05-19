@@ -1,5 +1,6 @@
 export  ham_Kinetic, ham_Potential, hamK, hamFull
 
+# HK = 0.5|G1+G2+ξ|^2δ_{G,G'}
 function ham_Kinetic(basis::Basis, kgrid)
 
     Gmn = basis.Gmn
@@ -38,6 +39,7 @@ function genV(Gmap::SparseMatrixCSC{Int64,Int64}, G, v::Function, indi, indj, va
     return indi, indj, vals
 end
 
+# HV = V1_{G1-G1'}δ_{G2,G2'}+V2_{G2-G2'}δ_{G1,G1'}
 function ham_Potential(basis::Basis)
     model = basis.model
     v1 = model.vft[1]
