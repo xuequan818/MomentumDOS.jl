@@ -4,16 +4,17 @@ using Test
 
 function ham_kinetic_test(basis::Basis)
 	nk = basis.nk
-	npw = basis.npw
-	Gmn = basis.Gmn
-	kpts = basis.kpts
 
-    H = zeros(Float64, nk, npw, npw)
+    H = Vector{Matrix{Float64}}(undef, nk)
     for k = 1:nk
-        for n1 = 1:npw
-            @views gmn = Gmn[n1]
-            H[k, n1, n1] = 0.5 * norm(gmn + kpts[k])^2 
+		kpt = basis.kpoints[k]
+		npw = kpt.npw
+        Hk = zeros(npw, npw)
+		Gmn = kpt.G_cart_sum
+        for (n1, gmn) in enumerate(Gmn)
+            Hk[n1, n1] = 0.5 * (gmn + kpt.coordinate)^2 
         end
+		H[k] = Hk
     end
 
 	return H
@@ -24,14 +25,13 @@ L = 5
 ϵ = 0.1
 model = TbgToy(L, ϵ, gauss)
 
-Ecut = 500
-basis = Basis(Ecut, model);
-@time H = map(k->ham_Kinetic(basis,basis.kpts[k]),1:basis.nk);
+EcutL = 100
+EcutW = 20
+basis = Basis(EcutL,EcutW, model);
+@time H = map(k->ham_Kinetic(basis,k),1:basis.nk);
 @time Htest = ham_kinetic_test(basis);
 
-nk = basis.nk
-npw = basis.npw
-for k = 1:nk
-	e = norm(Array(H[k])-Htest[k,:,:])
+for k = 1:basis.nk
+	e = norm(Array(H[k])-Htest[k])
 	@test e < 1e-8
 end

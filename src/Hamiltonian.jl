@@ -1,20 +1,15 @@
-export  ham_Kinetic, ham_Potential, hamK, hamFull
+export  ham_Kinetic, ham_Potential, ham
 
 # HK = 0.5|G1+G2+ξ|^2δ_{G,G'}
-function ham_Kinetic(basis::Basis, kgrid)
+function ham_Kinetic(basis::Basis, ik::Int)
+    kpt = basis.kpoints[ik]
+    vals = 0.5 .* (kpt.coordinate .+ kpt.G_cart_sum).^2
 
-    Gmn = basis.Gmn
-    npw = basis.npw
-    vals = 0.5 .* norm.(kgrid.+Gmn).^2
-
-    sparse(1:npw, 1:npw, vals)
+    sparse(1:kpt.npw, 1:kpt.npw, vals)
 end
-
-ham_Kinetic(basis::Basis) = ham_Kinetic(basis, zero(basis.kpts[1]))
 
 function genV(Gmap::SparseMatrixCSC{Int64,Int64}, G, v::Function, indi, indj, vals)
     
-    dG = zeros(size(G, 2))
     rowval = Gmap.rowval
     jptr = Gmap.colptr[2:end] - Gmap.colptr[1:end-1]
     count = 0
@@ -23,15 +18,10 @@ function genV(Gmap::SparseMatrixCSC{Int64,Int64}, G, v::Function, indi, indj, va
         for l1 = 1:jtr, l2 = 1:jtr
             i1 = rowval[l1 + count]
             i2 = rowval[l2 + count]
-            @views Gi1 = G[i1, :]
-            @views Gi2 = G[i2, :]
-            @. dG = Gi1 - Gi2
-            vdG = v(dG)
-            if norm(vdG,Inf) > 1e-11
-                push!(vals, vdG)
-                push!(indi, Gmap[i1, j])
-                push!(indj, Gmap[i2, j])
-            end
+            vdG = v(G[i1] - G[i2])
+            push!(vals, vdG)
+            push!(indi, Gmap[i1, j])
+            push!(indj, Gmap[i2, j])
         end
         count += jtr
     end
@@ -40,15 +30,16 @@ function genV(Gmap::SparseMatrixCSC{Int64,Int64}, G, v::Function, indi, indj, va
 end
 
 # HV = V1_{G1-G1'}δ_{G2,G2'}+V2_{G2-G2'}δ_{G1,G1'}
-function ham_Potential(basis::Basis)
+function ham_Potential(basis::Basis, ik::Int)
+    kpt = basis.kpoints[ik]
     model = basis.model
     v1 = model.vft[1]
     v2 = model.vft[2]
     G1 = basis.G1
     G2 = basis.G2
-    Gmap12 = basis.Gmap12
-    Gmap21 = basis.Gmap21
-    npw = basis.npw
+    Gmap12 = kpt.Gmap12
+    Gmap21 = kpt.Gmap21
+    npw = kpt.npw
 
     indi = Int[]
     indj = Int[]
@@ -60,8 +51,6 @@ function ham_Potential(basis::Basis)
     sparse(indi, indj, vals, npw, npw)
 end
 
-hamK(basis::Basis, k::Int64) = ham_Kinetic(basis, basis.kpts[k]) + ham_Potential(basis)
+ham(basis::Basis, ik::Int64) = ham_Kinetic(basis, ik) + ham_Potential(basis, ik)
 
-hamK(basis::Basis, k::Int64, HV) = ham_Kinetic(basis, basis.kpts[k]) + HV
-
-hamFull(basis::Basis) = map(k->hamK(basis,k), 1:basis.nk)
+ham(basis::Basis) = map(ik->ham(basis,ik), 1:basis.nk)

@@ -19,38 +19,39 @@ end
 
 gauss = [Gaussian(7, 0.05), Gaussian(5, 0.05)]
 L = 1
-ϵ = 0
+ϵ = 0.005
 model = TbgToy(L, ϵ, gauss)
 EcL = 1400
-EcW = 130
+EcW = 100
 basis = Basis(EcL, EcW, model);
 HV = ham_Potential(basis)
 vmin, umin = eigsolve(HV, 1, :SR)
 # Elb = λmin(HV),  Eup = 2 * W^2
-E1 = basis.EcutW^2 + 0.5 * vmin[1]
-E2 = basis.EcutW^2 - 0.5 * vmin[1]
+E1 = 0.5*(basis.EcutW^2 + vmin[1])
+E2 = 0.5*(basis.EcutW^2 - vmin[1])
 σ = 0.1
 σs = σ / E2
-Ept = 30
+Ept = 0
 Es = (Ept - E1) / E2
 g(x) = exp(-(x - Es)^2 / (2σs^2)) / (sqrt(2pi) * σs)
 
-M = 130000
+M = 100000
 Npt = Int(round(1.1M))
 pt = cos.(range(0, 2pi - pi / Npt, length=2Npt))
 
 @time M1, cf1 = TBG_DFT.genCheb(M, σ, pt, [Ept], E1, E2, KPM(); tol=1e-6)
-@time M2, cf2 = TBG_DFT.genCheb(M, σ, pt, [Ept], E1, E2, JacksonKPM(); tol=1e-6)
+#@time M2, cf2 = TBG_DFT.genCheb(M, σ, pt, [Ept], E1, E2, JacksonKPM(); tol=1e-6)
 h1(x) = gCP(x; cf=cf1)
-h2(x) = gCP(x; cf=cf2)
+#h2(x) = gCP(x; cf=cf2)
 xx = (collect(-8.:0.1 :34)  .- E1) ./ E2
 val1 = h1.(xx)
-val2 = h2.(xx)
+#val2 = h2.(xx)
 val = g.(xx)
 @show norm(val1 - val) / E2
-@show norm(val2 - val) / E2
-plot(xx, val1, lw = 4)
-plot!(xx, val2, lw = 2)
+#@show norm(val2 - val) / E2
+plot(xx, val, lw = 5)
+plot!(xx, val1, lw = 4)
+#plot!(xx, val2, lw = 2)
 
 gauss = [Gaussian(7, 0.05), Gaussian(5, 0.05)]
 L = 1

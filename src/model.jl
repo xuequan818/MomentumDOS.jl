@@ -25,7 +25,6 @@ function TBG1DGen(lat::Vector{T}, Lz::T, vft::Vector) where {T}
     latR = [2π / latj for latj in lat]
     latR_unit_vol = [det(latRj) for latRj in latR]
 
-
     return TBG1D(lat, latR, Lz, vft, lat_unit_vol, latR_unit_vol)
 end
 

@@ -1,74 +1,17 @@
 export Basis
 
-abstract type Basis end
+struct Kpoint{T<:Integer}
+    coordinate::Real
 
-"""
-standard planewave cutoff
-Ecut : energy cutoff
-npw : size of planewave basis
-Gimax : max index of the reciprocal lattices of sheet i
-Gi : full reciprocal lattices of sheet i
-G : reciprocal index of two sheets, i.e., G = (G1,G2)
-Gmn : sum of reciprocal lattice i.e., G1 + G2
-Gmapij : sorting index of (Gi,Gj)
-nk : number of k-points
-kpts : k-points
-model : TBG1D
-"""
-struct BasisST{T1,T2,T3} <: Basis
-    Ecut::T1
-    npw::T3
-    G1max::T3
-    G2max::T3
-    G1::Vector{T2}
-    G2::Vector{T2}
-    G::Matrix{T3}
-    Gmn::Vector{T2}
-    Gmap12::SparseMatrixCSC{T3,T3}
-    Gmap21::SparseMatrixCSC{T3,T3}
-    nk::T3
-    kpts::Vector{T2}
-    model::TBG1D
+    Gmap12::SparseMatrixCSC{T,T}
+    Gmap21::SparseMatrixCSC{T,T}
+
+    G_vec::Vector{SVector{2,Int64}}
+    G_cart_sum::Vector{Float64}
+
+    npw::T
+    G0_index::T
 end
-
-function basisGen(Ecut::T1, model::TBG1D,            
-                kpts::Vector{T2}) where {T1, T2}
-
-    latR = model.latR
-
-    G1max = floor(Int, sqrt(2.0 * Ecut) / norm(latR[1]))
-    G2max = floor(Int, sqrt(2.0 * Ecut) / norm(latR[2]))
-    G1 = collect(-G1max:G1max) .* latR[1]
-    G2 = collect(-G2max:G2max) .* latR[2]
-
-    count = 0
-    Gmn = Float64[]
-    ind1 = Int64[]
-    ind2 = Int64[]
-    val = Int64[]
-    G = Int64[]
-    for t1 = -G1max:G1max, t2 = -G2max:G2max
-        @views Gt1 = G1[t1+G1max+1]
-        @views Gt2 = G2[t2+G2max+1]
-        if Gt1^2 + Gt2^2 < 2Ecut
-            count += 1
-            push!(G,t1,t2)
-            push!(Gmn, Gt1 + Gt2)
-            push!(ind1, t1 + G1max + 1)
-            push!(ind2, t2 + G2max + 1)
-            push!(val, count)
-        end
-    end
-    G = Array(reshape(G, 2, Int(length(G) / 2))')
-    Gmap12 = sparse(ind1,ind2,val)
-    Gmap21 = sparse(ind2,ind1,val)
-    println(" Standard cutoff : Ecut =", Ecut, ";  Matrix DOF = ", count)
-    nk = length(kpts)
-
-    BasisST(Ecut, count, G1max, G2max, G1, G2, G, Gmn, Gmap12, Gmap21, nk, kpts, model)
-end
-
-Basis(Ecut::T, model::TBG1D; kpts = zeros(1)) where {T} = basisGen(Ecut, model, kpts)
 
 """
 Modified planewave cutoff
@@ -85,61 +28,69 @@ kpts : k-points
 SdL : the volume of a d-simensional ball with diameter L
 model : TBG1D
 """
-struct BasisLW{T1,T2,T3} <:Basis
-    EcutL::T1
-    EcutW::T1
-    npw::T3
-    G1max::T3
-    G2max::T3
-    G1::Vector{T2}
-    G2::Vector{T2}
-    G::Matrix{T3}
-    Gmn::Vector{T2}
-    Gmap12::SparseMatrixCSC{T3,T3}
-    Gmap21::SparseMatrixCSC{T3,T3}
-    nk::T3
-    kpts::Vector{T2}
-    SdL::T2
+struct Basis{T<:Integer}
+    EcutL::Real
+    EcutW::Real
+
+    G1::Vector{Float64}
+    G2::Vector{Float64}
+
+    nk::T
+    kpoints::Vector{Kpoint{T}}
+
+    SdL::Float64
     model::TBG1D
 end
 
-function basisGen(EcutL::T1, EcutW::T1, model::TBG1D, 
-                kpts::Vector{T2}) where {T1,T2}
+function Kpoint(kpt, EcutL, EcutW, G_sheet_vec, G_sheet_cart)
+
+    count = 0
+    G_vec = SVector{2,Int64}[]
+    G_cart_sum = Float64[]
+    ind1 = Int64[]
+    ind2 = Int64[]
+    val = Int64[]
+    for (t1, Gt1) in enumerate(G_sheet_cart[1])
+        for (t2, Gt2) in enumerate(G_sheet_cart[2])
+            if abs(kpt + Gt1 + Gt2) <= EcutW && abs(Gt1 - Gt2) <= EcutL
+                count += 1
+                push!(G_vec, SA[G_sheet_vec[1][t1], G_sheet_vec[2][t2]])
+                push!(G_cart_sum, Gt1 + Gt2)
+                push!(ind1, t1)
+                push!(ind2, t2)
+                push!(val, count)
+            end
+        end
+    end
+    Gmap12 = sparse(ind1, ind2, val)
+    Gmap21 = sparse(ind2, ind1, val)
+    npw = length(G_cart_sum)
+    G0_index = findfirst(iszero, G_vec)
+   
+    Kpoint(kpt,Gmap12,Gmap21,G_vec,G_cart_sum,npw,G0_index)
+end
+
+function Basis(EcutL::Real, EcutW::Real, 
+               model::TBG1D, kpts::Vector{T}) where {T<:Real}
 
     latR = model.latR
     dim = size(latR[1],1)
-    SdL = (sqrt(pi) * EcutL / 2) ^ dim * gamma(dim/2 + 1)
+    SdL = (sqrt(pi) * EcutL) ^ dim * gamma(dim/2 + 1)
 
-    G1max = floor(Int, max(EcutL, EcutW) / norm(latR[1]))
-    G2max = floor(Int, max(EcutL, EcutW) / norm(latR[2]))
-    G1 = collect(-G1max:G1max) .* latR[1]
-    G2 = collect(-G2max:G2max) .* latR[2]
+    n_fftw = 1 .+ 4 .* floor.(Int, max(EcutL, EcutW) ./ [norm(latR[j]) for j = 1:2])
+    G_sheet_vec = G_vectors.(n_fftw)
+    G_sheet_cart = [latR[j] .* G_sheet_vec[j] for j = 1:2]
 
-    count = 0
-    Gmn = Float64[]
-    ind1 = Int64[]
-    ind2 = Int64[]
-    G = Int64[]
-    val = Int64[]
-    for t1 = -G1max:G1max, t2 = -G2max:G2max
-        @views Gt1 = G1[t1+G1max+1]
-        @views Gt2 = G2[t2+G2max+1]
-        if abs(Gt1 + Gt2) <= EcutW && abs(Gt1 - Gt2) <= EcutL
-            count += 1
-            push!(G, t1, t2)
-            push!(Gmn, Gt1 + Gt2)
-            push!(ind1, t1 + G1max + 1)
-            push!(ind2, t2 + G2max + 1)
-            push!(val, count)
-        end
-    end
-    G = Array(reshape(G, 2, Int(length(G) / 2))')
-    Gmap12 = sparse(ind1, ind2, val)
-    Gmap21 = sparse(ind2, ind1, val)
-    println(" LW cutoff : EcutL = ", EcutL, ", EcutW = ", EcutW, ";  Matrix DOF = ", count)
     nk = length(kpts)
-    
-    BasisLW(EcutL, EcutW, count, G1max, G2max, G1, G2, G, Gmn, Gmap12, Gmap21, nk, kpts, SdL, model)
+    kpoints = [Kpoint(x, EcutL, EcutW, G_sheet_vec, G_sheet_cart) for x in kpts]
+
+    Basis(EcutL, EcutW, G_sheet_cart[1], G_sheet_cart[2], nk, kpoints, SdL, model)
 end
 
-Basis(EcutL::T, EcutW::T, model::TBG1D; nk=1, kpts=zeros(1)) where {T} = basisGen(EcutL, EcutW, model, kpts)
+Basis(EcutL::Real, EcutW::Real, model::TBG1D; kpts=zeros(1)) = Basis(EcutL, EcutW, model, kpts)
+
+function G_vectors(fft_size::Int)
+    start = -cld(fft_size - 1, 2)
+    stop = fld(fft_size - 1, 2)
+    G_vectors = vcat(0:stop, start:-1)
+end

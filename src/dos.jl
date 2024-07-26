@@ -16,10 +16,10 @@ evalf(x, μ, GF::Gauss) = exp(-(x - μ)^2 / (2GF.σ^2)) / (sqrt(2pi) * GF.σ)
 # \hat{Tr}_{W,L}(g(H^{W,L})) = pre_fac * Tr(g(H^{W,L}))
 # pre_fac = |Γ_1^*||Γ_2^*|/SdL
 function compute_dos_no_shift(ϵ, smearf::DosFunction,
-    basis::BasisLW, ERange::Float64, n_eigs::Int64)
+    basis::Basis, ERange::Float64, n_eigs::Int64)
 
     @assert basis.nk == 1 && norm(basis.kpts[1], 1) == 0.0
-    H = hamFull(basis)[1]
+    H = ham(basis,1)
     E, U = eigsolve(H, n_eigs, EigSorter(x -> abs(x - ERange); rev=false); krylovdim=n_eigs + 20)
 
     pre_fac = prod(basis.model.latR_unit_vol) / (basis.SdL * 2pi)
@@ -27,23 +27,19 @@ function compute_dos_no_shift(ϵ, smearf::DosFunction,
     dos = pre_fac .* [sum(g.(E, ϵi)) for ϵi in ϵ]
 end
 
-function compute_ldos(ϵ, smearf::DosFunction, basis::BasisLW; ERange=0, n_eigs=20)
+function compute_ldos(ϵ, smearf::DosFunction, basis::Basis; ERange=0, n_eigs=20)
 
-    npw = basis.npw
-    nk = basis.nk
-    G0ind = basis.Gmap12[basis.G1max+1, basis.G2max+1]
-    ldos = zeros(length(ϵ), nk)
+    ldos = zeros(length(ϵ), basis.nk)
     g(x, μ) = evalf(x, μ, smearf)
-    HV = ham_Potential(basis)
 
-    for k = 1:nk
-        Hk = hamK(basis, k, HV)
+    for (ik, kpt) in enumerate(basis.kpoints)
+        Hk = ham(basis, ik)
         Ek, ψk = eigsolve(Hk, n_eigs, EigSorter(x -> abs(x - ERange); rev=false); krylovdim=n_eigs + 20)
 
         # g(H^{W,L}(q))_{0,0} = \s um_j g(λ_j)|ψ_j|_0 ^2
-        pw0k = abs2.([ψkj[G0ind] for ψkj in ψk])
+        pw0k = abs2.([ψkj[kpt.G0_index] for ψkj in ψk])
         for (i, ϵi) in enumerate(ϵ)
-            ldos[i, k] = dot(g.(Ek, ϵi), pw0k)
+            ldos[i, ik] = dot(g.(Ek, ϵi), pw0k)
         end
     end
 
@@ -52,30 +48,31 @@ end
 # \tilde{Tr}^h_{W,L}(g(H^{W,L})) = pre_fac * \sum_{q\in K^W_h} g(H^{W,L}(q))_{0,0}
 # K^W_h : a uniform quadrature mesh on [-W,W]^dim  
 # pre_fac = h^dim  with  h = W/K
-function compute_dos_shift(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, EcutW::T, n_eigs::Int64, K::Int64; ERange=0.0) where {T<:Real}
+function compute_dos_shift(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, EcutW::T, h::Float64, n_eigs::Int64; Ktrunc=EcutW,ERange=0.5*(minimum(ϵ)+maximum(ϵ))) where {T<:Real}
 
-    h = EcutW / K
-    xx = collect(-K:K-1) .* h
-    basis = basisGen(EcutL, EcutW, model, xx)
-    HV = ham_Potential(basis)
+    xx = collect(0:h:Ktrunc)
+    basis = Basis(EcutL, EcutW, model, xx)
+    g(x, μ) = evalf(x, μ, smearf)
 
-    npw = basis.npw
-    G0ind = basis.Gmap12[basis.G1max+1, basis.G2max+1]
-    ldos = zeros(length(ϵ))
-    for k = 1:2K
-        Hk = hamK(basis, k, HV)
-        Ek, ψk = eigsolve(Hk, n_eigs, EigSorter(x -> abs(ERange - x); rev=false); krylovdim=n_eigs + 50)
+    dos = zeros(length(ϵ))
+    nk = basis.nk
+    for (ik, kpt) in enumerate(basis.kpoints)
+        Hk = ham(basis, ik)
+        Ek, ψk = eigsolve(Hk, n_eigs, EigSorter(x -> abs(ERange - x); rev=false); krylovdim=n_eigs + 20)
 
         # g(H^{W,L}(q))_{0,0} = \s um_j g(λ_j)|ψ_j|_0 ^2
-        pw0k = abs2.([ψkj[G0ind] for ψkj in ψk])
-        g(x, μ) = evalf(x, μ, smearf)
-        ldos += [dot(g.(Ek, ϵi), pw0k) for ϵi in ϵ]
+        pw0k = abs2.([ψkj[kpt.G0_index] for ψkj in ψk])
+        if 1 < ik < nk
+            dos += [2*dot(g.(Ek, ϵi), pw0k) for ϵi in ϵ]
+        else
+            dos += [dot(g.(Ek, ϵi), pw0k) for ϵi in ϵ]
+        end
     end
 
-    ldos .* h ./ 2pi
+    dos .* h ./ 2pi
 end
 
-compute_dos_shift(ϵ, smearf::DosFunction, basis::BasisLW, n_eigs::Int64, K::Int64; kwargs...) = compute_dos_shift(ϵ, smearf, basis.model, basis.EcutL, basis.EcutW, n_eigs, K; kwargs...)
+compute_dos_shift(ϵ, smearf::DosFunction, basis::Basis, h::Float64, n_eigs::Int64; kwargs...) = compute_dos_shift(ϵ, smearf, basis.model, basis.EcutL, basis.EcutW, h, n_eigs; kwargs...)
 
 #------------------------------------------------
 # computed by Chebyshev Polynomials (KPM)
@@ -185,90 +182,82 @@ function compute_TH0(M::Int64, H::SparseMatrixCSC, ind0::Int64)
     TH0
 end
 
-function compute_ldos_kpm(ϵ, smearf::DosFunction, basis::BasisLW; M=Int(1e5), Npt=Int(round(1.1M)), tol=1e-6, kwidth=5.0,method = KPM())
+function compute_ldos_kpm(ϵ, smearf::DosFunction, 
+                          basis::Basis; M=Int(1e5), 
+                          Npt=Int(round(1.1M)), 
+                          tol=1e-6, kwidth=5.0, 
+                          lb_fac=0.2, ub_fac=0.2, 
+                          method = KPM())
 
-    kwidth = 5.0
-    HV = ham_Potential(basis)
-    vmin = eigsolve(HV, 1, :SR)[1][1]
-    vmax = eigsolve(HV, 1, :LR)[1][1]
-
-    npw = basis.npw
-    nk = basis.nk
-    G0ind = basis.Gmap12[basis.G1max+1, basis.G2max+1]
-    ldos = zeros(length(ϵ), nk)
+    HV = ham_Potential(basis,1)
+    vmin = real(eigsolve(HV, 1, :SR)[1][1])
+    vmin = vmin - lb_fac * abs(vmin)
+    vmax = real(eigsolve(HV, 1, :LR)[1][1])
+    vmax = vmax + ub_fac * abs(vmax)
+    E1 = (0.5 * basis.EcutW^2 + vmax + vmin) / 2
+    E2 = (0.5 * basis.EcutW^2 + vmax - vmin) / 2
 
     pt = cos.(range(0, 2pi - pi / Npt, length=2Npt))
-    ck = zeros(size(ldos, 1))
-    E1 = 0
-    E2 = 0
-    Mk = 0
-    coef = Matrix{Float64}[]
-    for (k, kpt) in enumerate(basis.kpts)
-        (k % 50 == 0 || k == nk) && println(" $(k) / $(nk) ")
+    newM, coef = genCheb(M, smearf.σ, pt, ϵ, E1, E2, method; tol)
+    println(" M = $(newM)")
 
-        if (kpt - basis.kpts[1]) % kwidth == 0.0
-            # Elb = λmin(HV),  Eup = 0.5 * (|k| + W)^2 + λmax(HV)
-            E1 = (0.5 * (abs(kpt) + kwidth + basis.EcutW)^2 + vmax + vmin) / 2
-            E2 = (0.5 * (abs(kpt) + kwidth + basis.EcutW)^2 + vmax - vmin) / 2
-            Mk, coef = genCheb(M, smearf.σ, pt, ϵ, E1, E2, method; tol=tol)
-            @show Mk
-        end
-
-        Hk = hamK(basis, k, HV)
+    ldos = zeros(length(ϵ), basis.nk)
+    Folds.foreach(1:basis.nk, WorkStealingEx()) do ik
+        G0ind = basis.kpoints[ik].G0_index
+        Hk = ham(basis,ik)
         Hks = (Hk - E1 * I) / E2
-        THk0 = compute_TH0(Mk, Hks, G0ind)
+        THk0 = compute_TH0(newM, Hks, G0ind)
 
-        mul!(ck, coef, THk0)
-        @views ldos[:, k] = ck ./ E2
+        ck = coef * THk0
+        @views ldos[:, ik] = ck ./ E2
     end
 
     ldos ./ 2pi
 end
 
-function compute_dos_shift_kpm(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, EcutW::T, h::Float64; M=Int(1e5), Npt=Int(round(1.1M)), tol=1e-6, Ktrunc=EcutW, kwidth=5.0, method=KPM()) where {T<:Real}
+function compute_dos_shift_kpm(ϵ, smearf::DosFunction, 
+                               model::TBG1D, EcutL::T, 
+                               EcutW::T, h::Float64; 
+                               M=Int(1e5), Npt=Int(round(1.1M)), 
+                               tol=1e-6, Ktrunc=EcutW, 
+                               kwidth=5.0, method=KPM(),
+                               lb_fac=0.2, ub_fac=0.2,) where {T<:Real}
 
     # Note that the LDoS of this toy model has symmetry about 0
     # we just compute ξ ∈ [0,Ktrunc]
     
-    hgrid = Int(round(kwidth / h))
     xx = collect(0:h:Ktrunc)
-    basis = basisGen(EcutL, EcutW, model, xx)
+    basis = Basis(EcutL, EcutW, model, xx)
 
-    HV = ham_Potential(basis)
-    vmin = eigsolve(HV, 1, :SR)[1][1]
-    vmax = eigsolve(HV, 1, :LR)[1][1]
-
-    npw = basis.npw
-    nk = basis.nk
-    G0ind = basis.Gmap12[basis.G1max+1, basis.G2max+1]
-    ldos = zeros(length(ϵ))
+    HV = ham_Potential(basis, 1)
+    vmin = real(eigsolve(HV, 1, :SR)[1][1])
+    vmin = vmin - lb_fac * abs(vmin)
+    vmax = real(eigsolve(HV, 1, :LR)[1][1])
+    vmax = vmax + ub_fac * abs(vmax)
+    E1 = (0.5 * basis.EcutW^2 + vmax + vmin) / 2
+    E2 = (0.5 * basis.EcutW^2 + vmax - vmin) / 2
 
     pt = cos.(range(0, 2pi - pi / Npt, length=2Npt))
-    ck = zero(ldos)
-    E1 = 0
-    E2 = 0
-    Mk = 0
-    coef = Matrix{Float64}[]
-    for (k, kpt) in enumerate(basis.kpts)
-        (k % 50 == 0 || k == nk) && println(" $(k) / $(nk) ")
+    newM, coef = genCheb(M, smearf.σ, pt, ϵ, E1, E2, method; tol)
+    println(" M = $(newM)")
 
-        if k % hgrid == 1
-            # Elb = λmin(HV),  Eup = 0.5 * (|k| + W)^2 + λmax(HV)
-            E1 = (0.5 * (abs(kpt) + kwidth + basis.EcutW)^2 + vmax + vmin) / 2
-            E2 = (0.5 * (abs(kpt) + kwidth + basis.EcutW)^2 + vmax - vmin) / 2
-            Mk, coef = genCheb(M, smearf.σ, pt, ϵ, E1, E2, method; tol=tol)
-            @show Mk
-        end
-
-        Hk = hamK(basis, k, HV)
+    nk = basis.nk
+    dos = Folds.sum(1:nk, WorkStealingEx()) do ik
+        G0ind = basis.kpoints[ik].G0_index
+        Hk = ham(basis, ik)
         Hks = (Hk - E1 * I) / E2
-        THk0 = compute_TH0(Mk, Hks, G0ind)
+        THk0 = compute_TH0(newM, Hks, G0ind)
 
         # g(H^{W,L}(q))_{0,0} = \sum_m cm*Tm(H(q))_{0,0}
-        mul!(ck, coef, THk0)
-        ldos += (1 < k < length(basis.kpts) ? 2 .* ck ./ E2 : ck ./ E2)
+        ck = coef * THk0
+        if 1 < ik < nk
+            ck =  2 .* ck ./ E2
+        else
+            ck = ck ./ E2
+        end
+        ck
     end
     
-    ldos .* h ./ 2pi
+    dos .* h ./ 2pi
 end
-compute_dos_shift_kpm(ϵ, smearf::DosFunction, basis::BasisLW, h::Float64; kwargs...) = compute_dos_shift_kpm(ϵ, smearf, basis.model, basis.EcutL, basis.EcutW, h; kwargs...)
+compute_dos_shift_kpm(ϵ, smearf::DosFunction, basis::Basis, h::Float64; kwargs...) = compute_dos_shift_kpm(ϵ, smearf, basis.model, basis.EcutL, basis.EcutW, h; kwargs...)
