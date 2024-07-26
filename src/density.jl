@@ -29,7 +29,8 @@ function compute_density_vec(ϵ, smearf::DosFunction,
     					 EcutW::T, h::Float64;
     					 M=Int(1e5), Npt=Int(round(1.1M)),
     					 tol=1e-6, Ktrunc=EcutW,
-    					 kwidth=5.0, method=KPM()) where {T<:Real}
+    					 kwidth=5.0, method=KPM(),
+                         lb_fac=0.2, ub_fac=0.2) where {T<:Real}
 
     # Note that the LDoS of this toy model has symmetry about 0
     # we just compute ξ ∈ [0,Ktrunc]
@@ -55,7 +56,7 @@ function compute_density_vec(ϵ, smearf::DosFunction,
         G0ind = basis.kpoints[ik].G0_index
         Hk = ham(basis, ik)
         Hks = (Hk - E1 * I) / E2   
-        THk0_col = compute_TH0_col(Mk, Hks, G0ind)
+        THk0_col = compute_TH0_col(newM, Hks, G0ind)
 
         # g(H^{W,L}(q))_{0,G} = \sum_m cm*Tm(H(q))_{0,G}
         ck = coef * THk0_col
@@ -77,11 +78,10 @@ function compute_density_eig(ϵ, smearf::DosFunction, model::TBG1D, EcutL::T, Ec
     basis = Basis(EcutL, EcutW, model, xx)
     g(x, μ) = evalf(x, μ, smearf)
 
-    npw = basis.npw
-    G0ind = basis.Gmap12[basis.G1max+1, basis.G2max+1]
-    rho_vec = Vector{AbstractArray}(undef, nk)
     nk = basis.nk
+    rho_vec = Vector{AbstractArray}(undef, nk)
     for k = 1:nk
+        G0ind = basis.kpoints[k].G0_index
         rho_veck = zeros(basis.kpoints[k].npw, length(ϵ))
 
         Hk = ham(basis, k)
@@ -107,7 +107,7 @@ compute_density_eig(ϵ, smearf::DosFunction, basis::Basis, h::Float64, n_eigs::I
 
 
 function compute_density(x, rho_vec, basis::Basis) 
-    val = zero(x)
+    val = zeros(length(x), size(rho_vec[1],2))
     for (ik, kpt) in enumerate(basis.kpoints)
         val += real.(exp.(-im .* x * kpt.G_cart_sum') * rho_vec[ik])
     end

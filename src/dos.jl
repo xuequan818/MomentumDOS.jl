@@ -221,7 +221,7 @@ function compute_dos_shift_kpm(ϵ, smearf::DosFunction,
                                M=Int(1e5), Npt=Int(round(1.1M)), 
                                tol=1e-6, Ktrunc=EcutW, 
                                kwidth=5.0, method=KPM(),
-                               lb_fac=0.2, ub_fac=0.2,) where {T<:Real}
+                               lb_fac=0.2, ub_fac=0.2) where {T<:Real}
 
     # Note that the LDoS of this toy model has symmetry about 0
     # we just compute ξ ∈ [0,Ktrunc]

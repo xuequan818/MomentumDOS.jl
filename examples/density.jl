@@ -8,15 +8,14 @@ L = 1
 ϵ = 0.05
 model = TbgToy(L, ϵ, gauss);
 
-EcL = 1000
-EcW = 40
+EcL = 100
+EcW = 20
 basis = Basis(EcL, EcW, model);
 
 σ = 1.
-xs = collect(-10.:0.05:34);
-h = 0.01
-@time rho_vec = compute_density_vec(xs, Gauss(σ), basis, h; Ktrunc=12, tol=1e-6);
-
+xs = collect(-10.:0.1:34);
+h = 0.1
+@time rho_vec = compute_density_vec(xs, Gauss(σ), basis, h; Ktrunc=10, tol=1e-6);
 xx = collect(-10:0.01:30)
 rho = compute_density(xx, rho_vec, basis)
 #plot!(xx, rho*1000)
