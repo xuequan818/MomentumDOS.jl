@@ -1,12 +1,12 @@
 # TBG_DFT.jl
 
-A Julia packge for computing the density of states (DoS) of the [1D toy incommensurate Hamiltonian](https://arxiv.org/pdf/2510.15369) using the [momentum space](https://epubs.siam.org/doi/abs/10.1137/23M1553650) method.
+A Julia packge for computing the density of states (DoS) of the 1D toy [incommensurate Hamiltonian](https://arxiv.org/pdf/2510.15369) using the [momentum-space](https://epubs.siam.org/doi/abs/10.1137/23M1553650) method.
 
 ## Installation
 TBG_DFT.jl is an unregistered package and therefore needs to be downloaded or cloned to the user's local computer first, and then installed by running
 
 ```julia
-julia> cd("your-local-path/GeneralizedBM.jl")
+julia> cd("your-local-path/TBG_DFT.jl")
 julia> using Pkg
 julia> Pkg.activate(".")
 julia> Pkg.instantiate()
@@ -43,8 +43,8 @@ basis = Basis(EcL, EcW, model);
 
 # Compute the DoS
 ER = collect(-8:0.1:34) # Energy range
-h = 0.1
-σ = 0.4
+h = 0.1 
+σ = 0.4 # Gaussian parameter for test function
 @time dos = compute_dos_shift_kpm(ER, Gauss(σ), basis, h; Ktrunc=20, tol=1e-4);
 
 plot(ER, dos, label="ϵ=$ϵ")
