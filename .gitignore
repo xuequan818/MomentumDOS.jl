@@ -1,0 +1,15 @@
+*.jl.*.cov
+*.jl.cov
+*.jl.mem
+/Manifest.toml
+/not_needed
+/test_cluster_code
+/test_service_code
+/test_results
+/supercell
+/pluto
+*.DS_Store
+/xq.jl
+/images
+/.vscode
+/xq

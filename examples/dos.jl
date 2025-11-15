@@ -4,7 +4,7 @@ using Plots, LaTeXStrings, Plots.Measures
 
 gauss = [Gaussian(7, 0.05), Gaussian(5, 0.05)]
 L = 1
-EcL = 600
+EcL = 500
 EcW = 30
 σ = 0.4
 xs = collect(-8:0.1:34);

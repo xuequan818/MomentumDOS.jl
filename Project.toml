@@ -20,3 +20,6 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StringDistances = "88034a9c-02f8-509d-84a9-84ec65e18404"
+
+[compat]
+ProgressMeter = "1.10.4"

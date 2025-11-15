@@ -24,10 +24,10 @@ begin
 	using Plots.PlotMeasures
 	using Interpolations
 	using Dierckx
-	if !haskey(ENV, "DOCUMENTER_MAKE")
-		import PlotlyJS
-		plotlyjs()
-	end
+	#if !haskey(ENV, "DOCUMENTER_MAKE")
+	#	import PlotlyJS
+	#	plotlyjs()
+	#end
 	import PlutoUIExtra as PUIE
 end;
 
@@ -227,10 +227,10 @@ end
 
 # ╔═╡ bcac3b19-df83-44ac-b921-299249346020
 let
-	e = 1/125#0.008
+	e = 0.008
 	xa = [-14.45, -7.78, 6.8, 10.9]
 	xb = [-13.95, -7.02, 10., 15]
-	k = 1
+	k = 4
 	xsize = [490, 460, 460, 460]
 	Xticks =[[-14.4,-14.2,-14], [-7.1,-7.4,-7.7], [7, 8.5, 10], [11, 13, 15]]
 	xi = findall(x->xa[k]<x<xb[k], xs)
@@ -335,52 +335,6 @@ let
 	savefig("os_single.pdf")
 end
 
-# ╔═╡ 385b3a50-9f33-4d99-aaea-21fbd52205d1
-files_long = let
-	dir = "data_long"
-	files = readdir(dir)[max(zzz, 1):end]
-	joinpath.(dir, files)	
-end
-
-# ╔═╡ 5c227e6b-f125-4e1c-8921-0ae9c1240c45
-let
-	text = md"""Select file for long from: 
-	- $(@bind file_long Select(files_long; default=files_long[end]))
-	"""
-	PUIE.Sidebar(text )
-end
-
-# ╔═╡ 75ad24e7-1ca2-4bdf-b5e4-1644a04c1b57
-data_long = load(file_long)
-
-# ╔═╡ feafde80-58de-4ebe-8947-b6bf8e2a1b1e
-xue = let
-    tr0 = data0["dos"]
-    tr1 = (data1["dos"] - data2["dos"]) ./ (data1["ϵ"] - data2["ϵ"])
-    tr2 = (data1["dos"] + data2["dos"] - 2 .* data0["dos"]) ./ 2data1["ϵ"]^2
-	(; tr0, tr1, tr2, xs=data0["xs"])
-end
-
-# ╔═╡ 2142e5c0-1c05-4692-b355-79c7c1864ed3
-long = let
-    data = data_long
-    (; tr0=data["tr0"], tr1=data["tr1"], tr2=data["tr2"], xs=data["xs"], xlims=data["xlims"])
-end
-
-# ╔═╡ 5057ad34-dc21-4f5e-9c80-09188deac104
-begin
-	tr0_xue, tr1_xue, tr2_xue, xx = (; xue.tr0, xue.tr1, xue.tr2, xue.xs)
-	tr0_long, tr1_long, tr2_long = (; long.tr0, long.tr1, long.tr2)
-	ind = findall(x -> -20 <= x <= 20, xx)
-	P1 = plot(; guidefontsize=22, tickfontsize=20, legendfontsize=18, legend=:topright, grid=:off, box=:off, size=(700, 400), titlefontsize=25, right_margin=5mm, top_margin=3mm, bottom_margin=3mm, title="order=2", dpi=500)
-	plot!(P1, xx[ind], tr1_xue[ind], color=:red, lw=4, label="")
-	plot!(P1, xx[ind], -tr1_long[ind], color=:blue, ls=:dash, lw=2, label="")
-	P2 = plot(xx[ind], abs.(tr1_xue[ind] + tr1_long[ind]), lw=2, color=:black, yscale=:log10, guidefontsize=22, tickfontsize=20, legendfontsize=18, legend=:bottomright, grid=:off, box=:off, size=(700, 400), titlefontsize=25, right_margin=5mm, top_margin=3mm, bottom_margin=5mm, xlabel="Energy", dpi=500, label="")
-
-	l = @layout [a{0.55h}; b{0.5h}]
-	P3 = plot(P1, P2, layout=l, size=(700, 710), left_margin=5mm, bottom_margin=6mm)
-end
-
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -390,7 +344,6 @@ Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PlutoUIExtra = "a011ac08-54e6-4ec3-ad1c-4165f16ac4ce"
@@ -401,7 +354,6 @@ Format = "~1.3.7"
 Interpolations = "~0.15.1"
 JLD2 = "~0.4.49"
 LaTeXStrings = "~1.3.1"
-PlotlyJS = "~0.18.16"
 Plots = "~1.40.5"
 PlutoUI = "~0.7.59"
 PlutoUIExtra = "~0.1.8"
@@ -413,7 +365,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.6"
 manifest_format = "2.0"
-project_hash = "67662f15bfd7eb08225621512bd9f82a3cd635d9"
+project_hash = "9228a0b712c09407163d165a2178c55418383ce7"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -459,12 +411,6 @@ version = "1.1.1"
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
-[[deps.AssetRegistry]]
-deps = ["Distributed", "JSON", "Pidfile", "SHA", "Test"]
-git-tree-sha1 = "b25e88db7944f98789130d7b503276bc34bc098e"
-uuid = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
-version = "0.1.0"
-
 [[deps.AxisAlgorithms]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "WoodburyMatrices"]
 git-tree-sha1 = "01b8ccb13d68535d73d2b0c23e39bd23155fb712"
@@ -478,12 +424,6 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
 version = "0.1.9"
-
-[[deps.Blink]]
-deps = ["Base64", "Distributed", "HTTP", "JSExpr", "JSON", "Lazy", "Logging", "MacroTools", "Mustache", "Mux", "Pkg", "Reexport", "Sockets", "WebIO"]
-git-tree-sha1 = "bc93511973d1f949d45b0ea17878e6cb0ad484a1"
-uuid = "ad839575-38b3-5650-b840-f874b8c74a25"
-version = "0.12.9"
 
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -604,11 +544,6 @@ deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
 git-tree-sha1 = "1d0a14036acb104d9e89698bd408f63ab58cdc82"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 version = "0.18.20"
-
-[[deps.DataValueInterfaces]]
-git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
-uuid = "e2d170a0-9d28-54be-80f0-106bbe20a464"
-version = "1.0.0"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -741,12 +676,6 @@ git-tree-sha1 = "1ed150b39aebcc805c26b93a8d0122c940f64ce2"
 uuid = "559328eb-81f9-559d-9380-de523a88c83c"
 version = "1.0.14+0"
 
-[[deps.FunctionalCollections]]
-deps = ["Test"]
-git-tree-sha1 = "04cb9cfaa6ba5311973994fe3496ddec19b6292a"
-uuid = "de31a74c-ac4f-5751-b3fd-e18cd04993ca"
-version = "0.5.0"
-
 [[deps.GLFW_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libglvnd_jll", "Xorg_libXcursor_jll", "Xorg_libXi_jll", "Xorg_libXinerama_jll", "Xorg_libXrandr_jll", "libdecor_jll", "xkbcommon_jll"]
 git-tree-sha1 = "3f74912a156096bd8fdbef211eff66ab446e7297"
@@ -799,12 +728,6 @@ deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll",
 git-tree-sha1 = "129acf094d168394e80ee1dc4bc06ec835e510a3"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "2.8.1+1"
-
-[[deps.Hiccup]]
-deps = ["MacroTools", "Test"]
-git-tree-sha1 = "6187bb2d5fcbb2007c39e7ac53308b0d371124bd"
-uuid = "9fb69e20-1954-56bb-a84f-559cc56a8ff7"
-version = "0.2.2"
 
 [[deps.Hyperscript]]
 deps = ["Test"]
@@ -864,11 +787,6 @@ git-tree-sha1 = "630b497eafcc20001bba38a4651b327dcfc491d2"
 uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
 version = "0.2.2"
 
-[[deps.IteratorInterfaceExtensions]]
-git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
-uuid = "82899510-4779-5014-852e-03e436cf321d"
-version = "1.0.0"
-
 [[deps.JLD2]]
 deps = ["FileIO", "MacroTools", "Mmap", "OrderedCollections", "Pkg", "PrecompileTools", "Reexport", "Requires", "TranscodingStreams", "UUIDs", "Unicode"]
 git-tree-sha1 = "84642bc18a79d715b39d3724b03cbdd2e7d48c62"
@@ -887,12 +805,6 @@ git-tree-sha1 = "7e5d6779a1e09a36db2a7b6cff50942a0a7d0fca"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
 version = "1.5.0"
 
-[[deps.JSExpr]]
-deps = ["JSON", "MacroTools", "Observables", "WebIO"]
-git-tree-sha1 = "b413a73785b98474d8af24fd4c8a975e31df3658"
-uuid = "97c1335a-c9c5-57fe-bc5d-ec35cebe8660"
-version = "0.5.4"
-
 [[deps.JSON]]
 deps = ["Dates", "Mmap", "Parsers", "Unicode"]
 git-tree-sha1 = "31e996f0a15c7b280ba9f76636b3ff9e2ae58c9a"
@@ -904,12 +816,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "c84a835e1a09b289ffcd2271bf2a337bbdda6637"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "3.0.3+0"
-
-[[deps.Kaleido_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "43032da5832754f58d14a91ffbe86d5f176acda9"
-uuid = "f7e6163d-2fa5-5f23-b69c-1db539e41963"
-version = "0.2.1+0"
 
 [[deps.LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -953,12 +859,6 @@ version = "0.16.4"
     [deps.Latexify.weakdeps]
     DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
     SymEngine = "123dc426-2d89-5057-bbad-38513e3affd8"
-
-[[deps.Lazy]]
-deps = ["MacroTools"]
-git-tree-sha1 = "1370f8202dac30758f3c345f9909b97f53d87d3f"
-uuid = "50d2b5c4-7a5e-59d5-8109-a42b560f39c0"
-version = "0.15.1"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -1108,18 +1008,6 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2023.1.10"
 
-[[deps.Mustache]]
-deps = ["Printf", "Tables"]
-git-tree-sha1 = "3cbd5dda543bc59f2e482607ccf84b633724fc32"
-uuid = "ffc61752-8dc7-55ee-8c37-f3e9cdd09e70"
-version = "1.0.21"
-
-[[deps.Mux]]
-deps = ["AssetRegistry", "Base64", "HTTP", "Hiccup", "MbedTLS", "Pkg", "Sockets"]
-git-tree-sha1 = "7295d849103ac4fcbe3b2e439f229c5cc77b9b69"
-uuid = "a975b10e-0019-58db-a62f-e48ff68538c9"
-version = "1.0.2"
-
 [[deps.NaNMath]]
 deps = ["OpenLibm_jll"]
 git-tree-sha1 = "0877504529a3e5c3343c6f8b4c0381e57e4387e4"
@@ -1129,11 +1017,6 @@ version = "1.0.2"
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 version = "1.2.0"
-
-[[deps.Observables]]
-git-tree-sha1 = "7438a59546cf62428fc9d1bc94729146d37a7225"
-uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
-version = "0.5.5"
 
 [[deps.OffsetArrays]]
 git-tree-sha1 = "1a27764e945a152f7ca7efa04de513d473e9542e"
@@ -1194,23 +1077,11 @@ git-tree-sha1 = "9dd97171646850ee607593965ce1f55063d8d3f9"
 uuid = "36c8627f-9965-5494-a995-c6b170f724f3"
 version = "1.54.0+0"
 
-[[deps.Parameters]]
-deps = ["OrderedCollections", "UnPack"]
-git-tree-sha1 = "34c0e9ad262e5f7fc75b10a9952ca7692cfc5fbe"
-uuid = "d96e819e-fc66-5662-9728-84c9c7592b0a"
-version = "0.12.3"
-
 [[deps.Parsers]]
 deps = ["Dates", "PrecompileTools", "UUIDs"]
 git-tree-sha1 = "8489905bcdbcfac64d1daa51ca07c0d8f0283821"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.8.1"
-
-[[deps.Pidfile]]
-deps = ["FileWatching", "Test"]
-git-tree-sha1 = "2d8aaf8ee10df53d0dfb9b8ee44ae7c04ced2b03"
-uuid = "fa939f87-e72e-5be4-a000-7fc836dbe307"
-version = "1.3.0"
 
 [[deps.Pipe]]
 git-tree-sha1 = "6842804e7867b115ca9de748a0cf6b364523c16d"
@@ -1239,48 +1110,6 @@ deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random"
 git-tree-sha1 = "7b1a9df27f072ac4c9c7cbe5efb198489258d1f5"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
 version = "1.4.1"
-
-[[deps.PlotlyBase]]
-deps = ["ColorSchemes", "Colors", "Dates", "DelimitedFiles", "DocStringExtensions", "JSON", "LaTeXStrings", "Logging", "Parameters", "Pkg", "REPL", "Requires", "Statistics", "UUIDs"]
-git-tree-sha1 = "28278bb0053da0fd73537be94afd1682cc5a0a83"
-uuid = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
-version = "0.8.21"
-
-    [deps.PlotlyBase.extensions]
-    DataFramesExt = "DataFrames"
-    DistributionsExt = "Distributions"
-    IJuliaExt = "IJulia"
-    JSON3Ext = "JSON3"
-
-    [deps.PlotlyBase.weakdeps]
-    DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-    Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
-    IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
-    JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
-
-[[deps.PlotlyJS]]
-deps = ["Base64", "Blink", "DelimitedFiles", "JSExpr", "JSON", "Kaleido_jll", "Markdown", "Pkg", "PlotlyBase", "PlotlyKaleido", "REPL", "Reexport", "Requires", "WebIO"]
-git-tree-sha1 = "b816b0f301b074e002476159a9ada5691eebaf61"
-uuid = "f0f68f2c-4968-5e81-91da-67840de0976a"
-version = "0.18.16"
-
-    [deps.PlotlyJS.extensions]
-    CSVExt = "CSV"
-    DataFramesExt = ["DataFrames", "CSV"]
-    IJuliaExt = "IJulia"
-    JSON3Ext = "JSON3"
-
-    [deps.PlotlyJS.weakdeps]
-    CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-    DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-    IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
-    JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
-
-[[deps.PlotlyKaleido]]
-deps = ["Artifacts", "Base64", "JSON", "Kaleido_jll"]
-git-tree-sha1 = "9ef5c9e588ec7e912f01a76c7fd3dddf1913d4f2"
-uuid = "f2990250-8cf9-495f-b13a-cce12b45703c"
-version = "2.3.0"
 
 [[deps.Plots]]
 deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "JLFzf", "JSON", "LaTeXStrings", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "Pkg", "PlotThemes", "PlotUtils", "PrecompileTools", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "RelocatableFolders", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "TOML", "UUIDs", "UnicodeFun", "UnitfulLatexify", "Unzip"]
@@ -1468,18 +1297,6 @@ deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 version = "1.0.3"
 
-[[deps.TableTraits]]
-deps = ["IteratorInterfaceExtensions"]
-git-tree-sha1 = "c06b2f539df1c6efa794486abfb6ed2022561a39"
-uuid = "3783bdb8-4a98-5b6b-af9a-565f29a5fe9c"
-version = "1.0.1"
-
-[[deps.Tables]]
-deps = ["DataAPI", "DataValueInterfaces", "IteratorInterfaceExtensions", "OrderedCollections", "TableTraits"]
-git-tree-sha1 = "f2c1efbc8f3a609aadf318094f8fc5204bdaf344"
-uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "1.12.1"
-
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
@@ -1517,11 +1334,6 @@ version = "1.5.1"
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
-
-[[deps.UnPack]]
-git-tree-sha1 = "387c1f73762231e86e0c9c5443ce3b4a0a9a0c2b"
-uuid = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
-version = "1.0.2"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
@@ -1571,24 +1383,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "93f43ab61b16ddfb2fd3bb13b3ce241cafb0e6c9"
 uuid = "2381bf8a-dfd0-557d-9999-79630e7b1b91"
 version = "1.31.0+0"
-
-[[deps.WebIO]]
-deps = ["AssetRegistry", "Base64", "Distributed", "FunctionalCollections", "JSON", "Logging", "Observables", "Pkg", "Random", "Requires", "Sockets", "UUIDs", "WebSockets", "Widgets"]
-git-tree-sha1 = "0eef0765186f7452e52236fa42ca8c9b3c11c6e3"
-uuid = "0f1e0344-ec1d-5b48-a673-e5cf874b6c29"
-version = "0.8.21"
-
-[[deps.WebSockets]]
-deps = ["Base64", "Dates", "HTTP", "Logging", "Sockets"]
-git-tree-sha1 = "4162e95e05e79922e44b9952ccbc262832e4ad07"
-uuid = "104b5d7c-a370-577a-8038-80a2059c5097"
-version = "1.6.0"
-
-[[deps.Widgets]]
-deps = ["Colors", "Dates", "Observables", "OrderedCollections"]
-git-tree-sha1 = "e9aeb174f95385de31e70bd15fa066a505ea82b9"
-uuid = "cc8bc4a8-27d6-5769-a93b-9d913e69aa62"
-version = "0.6.7"
 
 [[deps.WoodburyMatrices]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -1894,7 +1688,7 @@ version = "1.4.1+1"
 # ╟─4c706d90-b2ba-4372-a021-04b653a8f18c
 # ╟─b1da96dd-73fc-4994-b307-6cba160be819
 # ╠═6faa2c53-d5cd-4a26-8def-1becd1df4d3a
-# ╠═cdacfd26-41bc-42a9-9f9f-c668e37b74aa
+# ╟─cdacfd26-41bc-42a9-9f9f-c668e37b74aa
 # ╟─27c9a067-cebf-485b-9e69-86717b3bbb8e
 # ╠═f79f981f-0540-497a-bd43-e6f6d9fe1526
 # ╠═f0fc0a08-619c-4988-8707-770f705836e3
@@ -1907,11 +1701,5 @@ version = "1.4.1+1"
 # ╟─c2edccca-9870-471f-8885-8f6aa1fb286d
 # ╠═9239120a-25f4-449e-bc55-fe15f665b561
 # ╠═7bf31e5a-d4ab-41f2-9181-f83d604949ee
-# ╠═385b3a50-9f33-4d99-aaea-21fbd52205d1
-# ╠═5c227e6b-f125-4e1c-8921-0ae9c1240c45
-# ╠═75ad24e7-1ca2-4bdf-b5e4-1644a04c1b57
-# ╠═feafde80-58de-4ebe-8947-b6bf8e2a1b1e
-# ╠═2142e5c0-1c05-4692-b355-79c7c1864ed3
-# ╠═5057ad34-dc21-4f5e-9c80-09188deac104
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
