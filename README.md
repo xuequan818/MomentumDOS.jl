@@ -50,6 +50,16 @@ h = 0.1
 plot(ER, dos, label="ϵ=$ϵ")
 ```
 
+## Quick run
+* Compute DoS: select `ϵ` from `-1e-5, 0.0, 0.1, 0.001, 1e-5` and select `σ` from `"04", "008", "004"`
+```julia
+ julia -t12 -e 'include("paper/code/dos.jl");ϵ = 0.0; σ = "04", test_dos(ϵ, σ)'
+```
+* Compute oscillation
+ ```julia
+ julia -t12 paper/code/dos_os.jl
+```
+
 ## Data
 The data supporting all figures and tables in [![DOI](https://img.shields.io/badge/DOI-10.48550/arXiv.2510.15369-blue)](https://doi.org/10.48550/arXiv.2510.15369) are provided in the `paper/data` folder. All figures and tabular data can be reproduced using the [Pluto](https://plutojl.org/en/docs/) notebook `paper/generate_plots.jl`, which can also be run quickly via 
 
