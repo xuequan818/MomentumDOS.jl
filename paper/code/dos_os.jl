@@ -1,10 +1,10 @@
-cd("TBG_DFT.jl")
+cd("MomentumDOS.jl")
 using Pkg
 Pkg.activate(".")
 
 #-----------------------------------------------------------------------
 
-using TBG_DFT
+using MomentumDOS
 using LinearAlgebra
 using JLD2
 using FoldsThreads, Folds

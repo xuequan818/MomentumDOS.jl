@@ -51,9 +51,9 @@ plot(ER, dos, label="ϵ=$ϵ")
 ```
 
 ## Quick run
-* Compute DoS: select `ϵ` from `-1e-5, 0.0, 0.1, 0.001, 1e-5` and select `σ` from `"04", "008", "004"`
+* Compute DoS: select `ϵ` from `-1e-5, 0.0, 0.1, 0.001, 1e-5` and select `σ` from `0.4, 0.08, 0.04`
 ```julia
- julia -t12 -e 'include("paper/code/dos.jl");ϵ = 0.0; σ = "04", test_dos(ϵ, σ)'
+ julia -t12 -e 'include("paper/code/dos.jl");ϵ = 0.0; σ = 0.4, test_dos(ϵ, σ)'
 ```
 * Compute oscillation
  ```julia

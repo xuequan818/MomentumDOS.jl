@@ -1,25 +1,21 @@
-cd("TBG_DFT.jl")
+cd("MomentumDOS.jl")
 using Pkg
 Pkg.activate(".")
 
-#-----------------------------------------------------------------------
-#initial step
-
-using TBG_DFT
+using MomentumDOS
 using LinearAlgebra
 using JLD2
 
-
-function test_dos(ϵ::Float64; σ="04")
-	if σ == "04"
+function test_dos(ϵ::Float64, σ::Float64)
+	if σ == 0.4
 		EcL = 4000
 		EcW = 80
 		h = 0.05
-	elseif σ == "008"
+	elseif σ == 0.08
 		EcL = 5000
 		EcW = 80
 		h = 0.01
-	elseif σ == "004"
+	elseif σ == 0.04
 		EcL = 6000
 		EcW = 80
 		h = 0.005
@@ -32,19 +28,21 @@ function test_dos(ϵ::Float64; σ="04")
     @time dos_int = compute_dos_shift_kpm(collect(1:0.1:2), Gauss(0.5), Basis(20, 10, model), 0.1; M=10, Ktrunc=2)
 
     basis = Basis(EcL, EcW, model)
-    xs = collect(-35:0.1:35)
+    ER = collect(-35:0.1:35)
     @time dos = compute_dos_shift_kpm(ER, Gauss(σ), basis, h; Ktrunc=40)
 
-	ϵtr = string(ϵ)[3:end]
-    if occursin('e', ϵtr)
-		ϵtr = "-5"
+	ϵsr = string(ϵ)[3:end]
+    if occursin('e', ϵsr)
+		ϵsr = "-5"
 	end
+
+    σsr = replace(string(σ), "." => "")
 
 	if ϵ >= 0
-		file_name = "dos_$(ϵtr)_$(σ).jld2"
+		file_name = "dos_$(ϵsr)_$(σsr).jld2"
 	else
-		file_name = "dos_$(ϵtr)_$(σ)m.jld2"
+		file_name = "dos_$(ϵsr)_$(σsr)m.jld2"
 	end
 
-    jldsave(file_name; ϵ, σ, xs, dos)
+    jldsave(file_name; ϵ, σ, xs=ER, dos)
 end
